@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinFree - Personal Family Finance</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 flex flex-col justify-between max-w-md mx-auto min-h-screen border-x border-slate-800 shadow-2xl">
+
+    <!-- HEADER & OFFLINE STATUS BAR -->
+    <header class="bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-wallet"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-extrabold text-white tracking-tight leading-none">FinFree</h1>
+                <p class="text-[10px] text-teal-400 font-medium">Family Budget & Snowball</p>
+            </div>
+        </div>
+        
+        <!-- NETWORK & SYNC STATUS BADGE -->
+        <div id="statusBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition-all duration-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="statusDot"></span>
+            <span id="statusText">Online</span>
+        </div>
+    </header>
+
+    <!-- PIN SECURITY MODAL -->
+    <div id="pinModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 w-full max-w-xs space-y-4 shadow-2xl text-center">
+            <div class="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center mx-auto text-lg">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h3 id="pinModalTitle" class="text-sm font-bold text-white">Enter Security PIN</h3>
+                <p id="pinModalSub" class="text-[11px] text-slate-400">Unlock profile</p>
+            </div>
+            <input type="password" id="pinInput" maxlength="6" placeholder="Enter PIN" class="w-full text-center text-lg tracking-widest bg-slate-900 border border-slate-700 rounded-xl py-2 text-white focus:outline-none focus:border-teal-400">
+            <div class="flex gap-2">
+                <button onclick="cancelPinPrompt()" class="w-1/2 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-bold">Cancel</button>
+                <button onclick="submitPinPrompt()" class="w-1/2 bg-teal-500 hover:bg-teal-400 text-slate-950 py-2 rounded-lg text-xs font-bold">Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE SETTINGS MODAL -->
+    <div id="profileSettingsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 w-full max-w-xs space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                <h3 class="text-xs font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-gear"></i> Family Member Settings
+                </h3>
+                <button onclick="toggleProfileSettings()" class="text-slate-400 text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="space-y-3 text-xs">
+                <!-- Spouse 1 Config -->
+                <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700/60 space-y-2">
+                    <span class="font-bold text-teal-300 text-[11px]">Member 1</span>
+                    <input type="text" id="member1NameInput" placeholder="Name (e.g., Alex)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                    <input type="password" id="member1PinInput" placeholder="Set PIN (Optional)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                </div>
+                <!-- Spouse 2 Config -->
+                <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700/60 space-y-2">
+                    <span class="font-bold text-teal-300 text-[11px]">Member 2</span>
+                    <input type="text" id="member2NameInput" placeholder="Name (e.g., Jordan)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                    <input type="password" id="member2PinInput" placeholder="Set PIN (Optional)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                </div>
+            </div>
+
+            <button onclick="saveProfileSettings()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-2 rounded-lg text-xs">Save Profiles</button>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION MODAL BANNER -->
+    <div id="notificationBanner" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-11/12 max-w-xs bg-slate-800 text-white text-xs px-4 py-3 rounded-xl border border-teal-500/40 shadow-xl flex items-center justify-between transition-all">
+        <span id="notificationMessage" class="font-medium">Message text</span>
+        <button onclick="hideNotification()" class="text-slate-400 hover:text-white ml-2"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- MAIN SCROLLABLE CONTENT AREA -->
+    <main class="flex-1 overflow-y-auto px-4 py-5 space-y-6 pb-24">
+
+        <!-- ================= TAB 1: QUICK ENTRY ================= -->
+        <section id="tab1" class="tab-content space-y-5">
+            <!-- User Selector & Natural Language Quick Entry Card -->
+            <div class="bg-slate-800/80 backdrop-blur-md rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-3">
+                <div class="flex items-center justify-between">
+                    <label for="nlpInput" class="text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI Natural Expense Parser
+                    </label>
+                    <!-- User Logger Switcher & Settings Gear -->
+                    <div class="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-lg p-0.5 text-[11px]">
+                        <span class="text-slate-400 pl-1.5 pr-0.5 text-[10px]"><i class="fa-solid fa-user text-teal-400"></i></span>
+                        <select id="userSelector" onchange="handleUserSwitchRequest(this.value)" class="bg-transparent text-slate-200 focus:outline-none font-semibold cursor-pointer pr-1">
+                            <!-- Dynamic Options -->
+                        </select>
+                        <button onclick="toggleProfileSettings()" class="text-slate-400 hover:text-teal-300 px-1.5 text-[11px]" title="Rename Profile / Set PIN">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <input type="text" id="nlpInput" placeholder='e.g., "24.50 Target toddler snacks"' 
+                           class="w-full bg-slate-900/90 border border-slate-700 focus:border-teal-400 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400/20 transition-all pr-12">
+                    <button id="btnParse" onclick="parseAndAddExpense()" class="absolute right-2 top-2 bottom-2 px-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg text-xs transition-all flex items-center justify-center">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                
+                <!-- Live Parsed Preview -->
+                <div id="parsedPreview" class="hidden bg-slate-900/50 p-2.5 rounded-lg border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
+                    <span id="parsedText">Detected: $0.00 | Merchant | Category</span>
+                    <button onclick="confirmParsedExpense()" class="text-teal-400 font-bold hover:underline">Add Now</button>
+                </div>
+            </div>
+
+            <!-- Instant Category Tap Buttons -->
+            <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Quick Tap Entry</h3>
+                <div id="quickTapContainer" class="grid grid-cols-4 gap-2">
+                    <!-- Dynamic Quick Tap Buttons -->
+                </div>
+            </div>
+
+            <!-- Home Screen Top 3 Budget Items Preview Card -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-pie text-teal-400"></i> Top 3 Budget Allocations
+                    </h3>
+                    <button onclick="switchTab(2)" class="text-[11px] text-teal-400 hover:underline font-semibold">View All</button>
+                </div>
+                <div id="topBudgetsContainer" class="space-y-2.5">
+                    <!-- Dynamic Top 3 Budget Items -->
+                </div>
+            </div>
+
+            <!-- Manual Quick Form Modal/Card -->
+            <div id="quickAddForm" class="hidden bg-slate-800 rounded-2xl p-4 border border-slate-700 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-teal-400 uppercase tracking-wider" id="quickFormTitle">Add Expense</h4>
+                    <button onclick="closeQuickForm()" class="text-slate-400 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="quickAmount" placeholder="Amount ($)" class="bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                    <input type="text" id="quickMerchant" placeholder="Merchant" class="bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <button onclick="saveQuickForm()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-2 rounded-lg text-xs transition-all">Save Expense</button>
+            </div>
+
+            <!-- Recent Transactions List -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Transactions</h3>
+                    <button onclick="clearAllTransactions()" class="text-[11px] text-rose-400 hover:underline font-medium">Clear All</button>
+                </div>
+                <div id="transactionList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    <!-- Dynamic Transaction Items -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: MONTHLY BUDGET PLANNER ================= -->
+        <section id="tab2" class="tab-content hidden space-y-5">
+            <!-- Monthly Budget Planner & Progress Tracker Card -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders"></i> Monthly Budget Planner
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span id="totalSpentHeader" class="text-teal-400 font-semibold text-xs">$0 Spent</span>
+                        <button onclick="toggleAddCategoryForm()" class="text-xs text-teal-400 font-bold hover:underline">+ New Category</button>
+                    </div>
+                </div>
+
+                <!-- Add/Edit Category Form -->
+                <div id="addCategoryForm" class="hidden bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="catName" placeholder="Category Name" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="catCap" placeholder="Monthly Cap ($)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                    </div>
+                    <button onclick="saveCategory()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-1.5 rounded-lg text-xs">Save Category</button>
+                </div>
+                
+                <div class="space-y-3 text-xs" id="categoryProgressContainer">
+                    <!-- Dynamic Progress Items Inserted Here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: SAVINGS TRACKER ================= -->
+        <section id="tab3" class="tab-content hidden space-y-5">
+            <!-- Savings Overview Header Card -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Family Savings Tracker
+                        </h3>
+                        <p class="text-[11px] text-slate-400 font-medium">Track total saved by category</p>
+                    </div>
+                    <button onclick="toggleAddSavingsForm()" class="text-xs text-emerald-400 font-bold hover:underline">+ Add Funds</button>
+                </div>
+
+                <!-- Total Savings KPI Banner -->
+                <div class="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-3.5 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-slate-400">Total Vault Balance</span>
+                        <div id="totalSavingsVal" class="text-2xl font-black text-emerald-400">$0.00</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                        <i class="fa-solid fa-vault text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Add Savings Entry Form -->
+                <div id="addSavingsForm" class="hidden bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="savingsCategory" placeholder="Category (e.g. Emergency)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="savingsAmount" placeholder="Amount ($)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="savingsGoal" placeholder="Target Goal ($ optional)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <button onclick="saveSavingsEntry()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2 rounded-lg text-xs">Save Deposit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings Categories Cards Grid -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Savings Funds & Goals</h4>
+                <div id="savingsContainer" class="space-y-3">
+                    <!-- Dynamic Savings Cards -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: INCOME & TITHE ENGINE ================= -->
+        <section id="tab4" class="tab-content hidden space-y-5">
+            <!-- Income Baseline Card -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calculator"></i> Dual-Income Baseline
+                    </h3>
+                    <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Monthly Normalizer</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block text-[10px]">Spouse 1 (Semi-Monthly)</span>
+                        <span class="text-white font-bold text-sm">$3,000.00</span>
+                        <span class="text-[10px] text-slate-500 block font-medium">Fixed Baseline</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50">
+                        <span class="text-slate-400 block text-[10px]">Spouse 2 (Bi-Weekly Hourly)</span>
+                        <span class="text-white font-bold text-sm" id="spouse2Base">$2,000.00</span>
+                        <span class="text-[10px] text-slate-500 block font-medium">$25/hr @ 80 hrs/pay</span>
+                    </div>
+                </div>
+
+                <!-- Extra Hours Interactive Slider -->
+                <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-700/70 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-slate-300">Spouse 2 Overtime / Extra Hours:</span>
+                        <span id="extraHoursVal" class="font-bold text-teal-400 text-sm">0 hrs</span>
+                    </div>
+                    <input type="range" id="overtimeSlider" min="0" max="40" step="1" value="0" 
+                           class="w-full accent-teal-400 bg-slate-800 rounded-lg h-2 cursor-pointer" oninput="updateIncomeCalculations()">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>0 hrs</span>
+                        <span>20 hrs</span>
+                        <span>40 hrs (Max)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tithe & Budget Allocation Breakdown Card -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Automated Financial Waterfall</h3>
+                
+                <!-- Gross Income -->
+                <div class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-xl text-xs border border-slate-800">
+                    <span class="text-slate-300 font-medium">Total Monthly Gross Income:</span>
+                    <span id="totalGrossIncome" class="font-bold text-emerald-400 text-sm">$5,000.00</span>
+                </div>
+
+                <!-- 10% Tithe Off Top -->
+                <div class="bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-3 rounded-xl border border-amber-500/20 flex items-center justify-between text-xs">
+                    <div>
+                        <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-church"></i> 10% Gross Tithe
+                        </div>
+                        <p class="text-[10px] text-slate-400">Allocated first off the top</p>
+                    </div>
+                    <span id="titheAmount" class="text-base font-black text-amber-300">$500.00</span>
+                </div>
+
+                <!-- Net Income Available -->
+                <div class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-xl text-xs border border-slate-800">
+                    <span class="text-slate-300 font-medium">Net Take-Home Cash:</span>
+                    <span id="netIncome" class="font-bold text-white text-sm">$4,500.00</span>
+                </div>
+
+                <!-- 50/50 Overtime Excess Split Visual -->
+                <div id="overtimeSplitCard" class="hidden bg-slate-900/90 p-3 rounded-xl border border-teal-500/30 space-y-2">
+                    <div class="text-[11px] font-bold text-teal-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>50/50 Excess Allocation Engine</span>
+                        <span id="excessTotalVal" class="text-white">$0.00</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-800 p-2 rounded-lg border border-slate-700">
+                            <span class="text-[10px] text-slate-400 block">50% Debt Payoff</span>
+                            <span id="excessDebtVal" class="font-bold text-emerald-400">$0.00</span>
+                        </div>
+                        <div class="bg-slate-800 p-2 rounded-lg border border-slate-700">
+                            <span class="text-[10px] text-slate-400 block">50% Spendable Cash</span>
+                            <span id="excessSpendVal" class="font-bold text-teal-300">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: DEBT ACCELERATOR SIMULATOR ================= -->
+        <section id="tab5" class="tab-content hidden space-y-5">
+            <!-- Debt Snowball Overview Card -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line"></i> Debt Snowball Simulator
+                    </h3>
+                    <span class="text-[10px] bg-teal-500/10 text-teal-300 border border-teal-500/20 px-2 py-0.5 rounded-full font-semibold">Payoff Engine</span>
+                </div>
+
+                <!-- Interactive Acceleration Payment Slider -->
+                <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-700/70 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-slate-300">Extra Monthly Acceleration:</span>
+                        <span id="extraPaymentVal" class="font-bold text-teal-400 text-sm">+$200 /mo</span>
+                    </div>
+                    <input type="range" id="debtSlider" min="0" max="1000" step="25" value="200" 
+                           class="w-full accent-teal-400 bg-slate-800 rounded-lg h-2 cursor-pointer" oninput="calculateDebtSnowball()">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>+$0</span>
+                        <span>+$500</span>
+                        <span>+$1,000</span>
+                    </div>
+                </div>
+
+                <!-- Summary Metrics Cards -->
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+                        <span class="text-slate-400 text-[10px]">Time to Debt Free</span>
+                        <div class="mt-1">
+                            <span id="monthsToFree" class="text-lg font-black text-white">18</span>
+                            <span class="text-[11px] text-slate-400"> Months</span>
+                        </div>
+                        <span id="dateToFree" class="text-[10px] text-teal-400 font-medium">Est. May 2028</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+                        <span class="text-slate-400 text-[10px]">Total Interest Saved</span>
+                        <div class="mt-1">
+                            <span id="interestSaved" class="text-lg font-black text-emerald-400">$1,420</span>
+                        </div>
+                        <span class="text-[10px] text-emerald-400/80 font-medium">Accelerated Snowball</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Liabilities List -->
+            <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/60 shadow-lg space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Family Debts (Lowest Balance First)</h3>
+                    <button onclick="toggleAddDebtForm()" class="text-xs text-teal-400 font-bold hover:underline">+ Add Debt</button>
+                </div>
+
+                <!-- Add Debt Inline Form -->
+                <div id="addDebtForm" class="hidden bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <input type="text" id="debtName" placeholder="Debt Name (e.g., Credit Card)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="number" id="debtBalance" placeholder="Balance ($)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="debtMinPay" placeholder="Min Pay ($)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="debtRate" placeholder="APR (%)" class="bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                    </div>
+                    <button onclick="saveNewDebt()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-1.5 rounded-lg text-xs">Save Debt</button>
+                </div>
+
+                <div id="debtsContainer" class="space-y-2.5">
+                    <!-- Dynamic Debt Cards -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM FIXED TAB NAVIGATION BAR (5 TABS) -->
+    <nav class="bg-slate-950 border-t border-slate-800 px-3 py-2 sticky bottom-0 z-30 flex justify-around items-center max-w-md mx-auto w-full">
+        <button onclick="switchTab(1)" id="navTab1" class="tab-btn flex flex-col items-center py-1 text-teal-400 transition-all">
+            <i class="fa-solid fa-bolt text-base mb-1"></i>
+            <span class="text-[9px] font-semibold">Quick Entry</span>
+        </button>
+        <button onclick="switchTab(2)" id="navTab2" class="tab-btn flex flex-col items-center py-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fa-solid fa-sliders text-base mb-1"></i>
+            <span class="text-[9px] font-semibold">Budget</span>
+        </button>
+        <button onclick="switchTab(3)" id="navTab3" class="tab-btn flex flex-col items-center py-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fa-solid fa-piggy-bank text-base mb-1"></i>
+            <span class="text-[9px] font-semibold">Savings</span>
+        </button>
+        <button onclick="switchTab(4)" id="navTab4" class="tab-btn flex flex-col items-center py-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fa-solid fa-scale-balanced text-base mb-1"></i>
+            <span class="text-[9px] font-semibold">Tithe & Income</span>
+        </button>
+        <button onclick="switchTab(5)" id="navTab5" class="tab-btn flex flex-col items-center py-1 text-slate-500 hover:text-slate-300 transition-all">
+            <i class="fa-solid fa-chart-line text-base mb-1"></i>
+            <span class="text-[9px] font-semibold">Debt Simulator</span>
+        </button>
+    </nav>
+
+    <!-- FIREBASE SERVICES SCRIPTS (MODULE) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // APP STATE & CONSTANTS
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'finfree-app';
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+
+        // Default In-Memory Initial State with Profiles
+        window.appState = {
+            activeUser: localStorage.getItem('finfree_active_user') || 'Spouse 1',
+            profiles: JSON.parse(localStorage.getItem('finfree_profiles')) || {
+                'Spouse 1': { name: 'Spouse 1', pin: '' },
+                'Spouse 2': { name: 'Spouse 2', pin: '' }
+            },
+            transactions: JSON.parse(localStorage.getItem('finfree_transactions')) || [
+                { id: '1', merchant: 'Target', amount: 24.50, category: 'Toddler', loggedBy: 'Spouse 1', date: new Date().toISOString() },
+                { id: '2', merchant: 'Trader Joes', amount: 85.20, category: 'Groceries', loggedBy: 'Spouse 2', date: new Date().toISOString() }
+            ],
+            categories: JSON.parse(localStorage.getItem('finfree_categories')) || {
+                'Groceries': { cap: 600, icon: 'fa-cart-shopping', color: 'emerald' },
+                'Toddler': { cap: 300, icon: 'fa-baby', color: 'pink' },
+                'Dining': { cap: 250, icon: 'fa-utensils', color: 'amber' },
+                'Gas/Bills': { cap: 450, icon: 'fa-bolt', color: 'cyan' }
+            },
+            savings: JSON.parse(localStorage.getItem('finfree_savings')) || [
+                { id: 's1', category: 'Emergency Fund', balance: 3500, goal: 5000, loggedBy: 'Spouse 1' },
+                { id: 's2', category: 'Family Vacation', balance: 1200, goal: 2000, loggedBy: 'Spouse 2' }
+            ],
+            debts: JSON.parse(localStorage.getItem('finfree_debts')) || [
+                { id: 'd1', name: 'Store Card', balance: 1200, minPayment: 50, rate: 24.99 },
+                { id: 'd2', name: 'Auto Loan', balance: 6500, minPayment: 210, rate: 6.5 }
+            ],
+            overtimeHours: 0,
+            extraDebtPayment: 200
+        };
+
+        // Firebase Setup & Auth
+        try {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            if (firebaseConfig) {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+
+                initAuth().catch(err => console.warn('Auth fallback:', err));
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        setupFirestoreSync();
+                    }
+                });
+            }
+        } catch (e) {
+            console.log('Running in local-only fallback mode');
+        }
+
+        // Real-time Firestore Sync
+        function setupFirestoreSync() {
+            if (!db || !currentUser) return;
+            const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'finfree_data', 'state');
+            
+            onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.transactions) window.appState.transactions = data.transactions;
+                    if (data.categories) window.appState.categories = data.categories;
+                    if (data.savings) window.appState.savings = data.savings;
+                    if (data.debts) window.appState.debts = data.debts;
+                    if (data.profiles) window.appState.profiles = data.profiles;
+                    renderAll();
+                }
+            }, (error) => {
+                console.warn('Firestore snapshot error:', error);
+            });
+        }
+
+        // Global Sync helper
+        window.syncData = function() {
+            localStorage.setItem('finfree_transactions', JSON.stringify(window.appState.transactions));
+            localStorage.setItem('finfree_categories', JSON.stringify(window.appState.categories));
+            localStorage.setItem('finfree_savings', JSON.stringify(window.appState.savings));
+            localStorage.setItem('finfree_debts', JSON.stringify(window.appState.debts));
+            localStorage.setItem('finfree_profiles', JSON.stringify(window.appState.profiles));
+            localStorage.setItem('finfree_active_user', window.appState.activeUser);
+
+            if (db && currentUser) {
+                const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'finfree_data', 'state');
+                setDoc(userDocRef, {
+                    transactions: window.appState.transactions,
+                    categories: window.appState.categories,
+                    savings: window.appState.savings,
+                    debts: window.appState.debts,
+                    profiles: window.appState.profiles,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true }).catch(err => console.warn('Cloud sync save error:', err));
+            }
+
+            renderAll();
+        };
+
+        // Network Status Handler
+        function updateOnlineStatus() {
+            const badge = document.getElementById('statusBadge');
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+
+            if (navigator.onLine) {
+                badge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                text.textContent = "Online";
+            } else {
+                badge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                dot.className = "w-2 h-2 rounded-full bg-amber-400";
+                text.textContent = "Offline";
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAll();
+        });
+    </script>
+
+    <!-- CORE LOGIC & UI INTERACTION SCRIPT -->
+    <script>
+        // Profile Management & PIN Verification Logic
+        let pendingUserSwitch = null;
+
+        function renderUserSelectorOptions() {
+            const select = document.getElementById('userSelector');
+            if (!select) return;
+
+            const profileKeys = Object.keys(window.appState.profiles);
+            select.innerHTML = profileKeys.map(key => {
+                const p = window.appState.profiles[key];
+                return `<option value="${key}" ${window.appState.activeUser === key ? 'selected' : ''} class="bg-slate-900 text-slate-200">${p.name}</option>`;
+            }).join('');
+        }
+
+        function handleUserSwitchRequest(requestedKey) {
+            const profile = window.appState.profiles[requestedKey];
+            if (profile && profile.pin) {
+                pendingUserSwitch = requestedKey;
+                document.getElementById('pinModalTitle').textContent = `Verification Required`;
+                document.getElementById('pinModalSub').textContent = `Enter PIN for ${profile.name}`;
+                document.getElementById('pinInput').value = '';
+                document.getElementById('pinModal').classList.remove('hidden');
+            } else {
+                setActiveUser(requestedKey);
+            }
+        }
+
+        function submitPinPrompt() {
+            if (!pendingUserSwitch) return;
+            const profile = window.appState.profiles[pendingUserSwitch];
+            const pinVal = document.getElementById('pinInput').value;
+
+            if (profile && profile.pin === pinVal) {
+                document.getElementById('pinModal').classList.add('hidden');
+                setActiveUser(pendingUserSwitch);
+                pendingUserSwitch = null;
+            } else {
+                showNotification("Incorrect PIN!");
+                document.getElementById('pinInput').value = '';
+            }
+        }
+
+        function cancelPinPrompt() {
+            document.getElementById('pinModal').classList.add('hidden');
+            pendingUserSwitch = null;
+            renderUserSelectorOptions(); // Revert selector state
+        }
+
+        function setActiveUser(userNameKey) {
+            window.appState.activeUser = userNameKey;
+            localStorage.setItem('finfree_active_user', userNameKey);
+            const displayName = window.appState.profiles[userNameKey]?.name || userNameKey;
+            showNotification(`Active logger: ${displayName}`);
+            renderUserSelectorOptions();
+        }
+
+        function toggleProfileSettings() {
+            const modal = document.getElementById('profileSettingsModal');
+            if (modal.classList.contains('hidden')) {
+                const keys = Object.keys(window.appState.profiles);
+                document.getElementById('member1NameInput').value = window.appState.profiles[keys[0]]?.name || 'Spouse 1';
+                document.getElementById('member1PinInput').value = window.appState.profiles[keys[0]]?.pin || '';
+                document.getElementById('member2NameInput').value = window.appState.profiles[keys[1]]?.name || 'Spouse 2';
+                document.getElementById('member2PinInput').value = window.appState.profiles[keys[1]]?.pin || '';
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveProfileSettings() {
+            const keys = Object.keys(window.appState.profiles);
+            const m1Name = document.getElementById('member1NameInput').value.trim() || 'Spouse 1';
+            const m1Pin = document.getElementById('member1PinInput').value.trim();
+            const m2Name = document.getElementById('member2NameInput').value.trim() || 'Spouse 2';
+            const m2Pin = document.getElementById('member2PinInput').value.trim();
+
+            window.appState.profiles[keys[0]] = { name: m1Name, pin: m1Pin };
+            window.appState.profiles[keys[1]] = { name: m2Name, pin: m2Pin };
+
+            toggleProfileSettings();
+            showNotification("Member profiles & PINs saved!");
+            if (window.syncData) window.syncData();
+        }
+
+        // Tab Navigation Switcher
+        function switchTab(tabNum) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab${tabNum}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-teal-400');
+                btn.classList.add('text-slate-500');
+            });
+            document.getElementById(`navTab${tabNum}`).classList.remove('text-slate-500');
+            document.getElementById(`navTab${tabNum}`).classList.add('text-teal-400');
+        }
+
+        // Notification Banner Helper
+        function showNotification(msg) {
+            const banner = document.getElementById('notificationBanner');
+            const msgEl = document.getElementById('notificationMessage');
+            msgEl.textContent = msg;
+            banner.classList.remove('hidden');
+            setTimeout(() => { hideNotification(); }, 3500);
+        }
+
+        function hideNotification() {
+            document.getElementById('notificationBanner').classList.add('hidden');
+        }
+
+        // ================= TAB 1: NATURAL LANGUAGE & QUICK ENTRY =================
+        let pendingParsedExpense = null;
+
+        function parseAndAddExpense() {
+            const input = document.getElementById('nlpInput').value.trim();
+            if (!input) return;
+
+            const amountMatch = input.match(/\$?(\d+(?:\.\d{1,2})?)/);
+            const amount = amountMatch ? parseFloat(amountMatch[1]) : 0;
+
+            if (amount <= 0) {
+                showNotification("Please enter a valid expense amount!");
+                return;
+            }
+
+            let cleanText = input.replace(amountMatch[0], '').trim();
+            let category = Object.keys(window.appState.categories)[0] || 'General';
+            const lower = cleanText.toLowerCase();
+
+            for (const catName of Object.keys(window.appState.categories)) {
+                if (lower.includes(catName.toLowerCase())) {
+                    category = catName;
+                    break;
+                }
+            }
+
+            if (category === Object.keys(window.appState.categories)[0]) {
+                if (lower.includes('toddler') || lower.includes('baby') || lower.includes('diaper') || lower.includes('toy') || lower.includes('snack')) {
+                    if (window.appState.categories['Toddler']) category = 'Toddler';
+                } else if (lower.includes('dine') || lower.includes('food') || lower.includes('restaurant') || lower.includes('coffee') || lower.includes('lunch') || lower.includes('dinner')) {
+                    if (window.appState.categories['Dining']) category = 'Dining';
+                } else if (lower.includes('gas') || lower.includes('bill') || lower.includes('electric') || lower.includes('fuel') || lower.includes('utility')) {
+                    if (window.appState.categories['Gas/Bills']) category = 'Gas/Bills';
+                } else if (lower.includes('target') || lower.includes('walmart') || lower.includes('trader') || lower.includes('grocery')) {
+                    category = lower.includes('target') && lower.includes('snack') && window.appState.categories['Toddler'] ? 'Toddler' : (window.appState.categories['Groceries'] ? 'Groceries' : category);
+                }
+            }
+
+            const words = cleanText.split(' ');
+            let merchant = words.length > 0 && words[0].length > 1 ? words[0] : 'Store';
+            merchant = merchant.charAt(0).toUpperCase() + merchant.slice(1);
+
+            const activeProfile = window.appState.profiles[window.appState.activeUser];
+            const currentLoggerName = activeProfile ? activeProfile.name : window.appState.activeUser;
+
+            pendingParsedExpense = {
+                id: Date.now().toString(),
+                amount: amount,
+                merchant: merchant,
+                category: category,
+                loggedBy: currentLoggerName,
+                date: new Date().toISOString()
+            };
+
+            const preview = document.getElementById('parsedPreview');
+            const previewText = document.getElementById('parsedText');
+            previewText.textContent = `Extracted: $${amount.toFixed(2)} at ${merchant} (${category}) by ${currentLoggerName}`;
+            preview.classList.remove('hidden');
+        }
+
+        function confirmParsedExpense() {
+            if (pendingParsedExpense) {
+                window.appState.transactions.unshift(pendingParsedExpense);
+                pendingParsedExpense = null;
+                document.getElementById('nlpInput').value = '';
+                document.getElementById('parsedPreview').classList.add('hidden');
+                showNotification("Expense successfully logged!");
+                if (window.syncData) window.syncData();
+            }
+        }
+
+        // Quick Category Tap Handlers
+        let selectedCategoryTap = '';
+        function quickAddCategory(cat) {
+            selectedCategoryTap = cat;
+            const activeProfile = window.appState.profiles[window.appState.activeUser];
+            const loggerName = activeProfile ? activeProfile.name : window.appState.activeUser;
+
+            document.getElementById('quickFormTitle').textContent = `Quick Add to ${cat} (${loggerName})`;
+            document.getElementById('quickAddForm').classList.remove('hidden');
+        }
+
+        function closeQuickForm() {
+            document.getElementById('quickAddForm').classList.add('hidden');
+        }
+
+        function saveQuickForm() {
+            const amt = parseFloat(document.getElementById('quickAmount').value);
+            const merchant = document.getElementById('quickMerchant').value.trim() || selectedCategoryTap;
+
+            if (!amt || amt <= 0) {
+                showNotification("Please enter a valid amount.");
+                return;
+            }
+
+            const activeProfile = window.appState.profiles[window.appState.activeUser];
+            const loggerName = activeProfile ? activeProfile.name : window.appState.activeUser;
+
+            window.appState.transactions.unshift({
+                id: Date.now().toString(),
+                amount: amt,
+                merchant: merchant,
+                category: selectedCategoryTap,
+                loggedBy: loggerName,
+                date: new Date().toISOString()
+            });
+
+            document.getElementById('quickAmount').value = '';
+            document.getElementById('quickMerchant').value = '';
+            closeQuickForm();
+            showNotification(`Added $${amt.toFixed(2)} to ${selectedCategoryTap}`);
+            if (window.syncData) window.syncData();
+        }
+
+        // Category Management Functions
+        function toggleAddCategoryForm() {
+            const form = document.getElementById('addCategoryForm');
+            form.classList.toggle('hidden');
+        }
+
+        function saveCategory() {
+            const name = document.getElementById('catName').value.trim();
+            const cap = parseFloat(document.getElementById('catCap').value);
+
+            if (!name || isNaN(cap) || cap < 0) {
+                showNotification("Please enter a valid category name and budget cap.");
+                return;
+            }
+
+            const existing = window.appState.categories[name] || {};
+            window.appState.categories[name] = {
+                cap: cap,
+                icon: existing.icon || 'fa-tag',
+                color: existing.color || 'teal'
+            };
+
+            document.getElementById('catName').value = '';
+            document.getElementById('catCap').value = '';
+            toggleAddCategoryForm();
+            showNotification(`Saved budget section: ${name} ($${cap})`);
+            if (window.syncData) window.syncData();
+        }
+
+        function deleteCategory(catName) {
+            delete window.appState.categories[catName];
+            showNotification(`Removed category ${catName}`);
+            if (window.syncData) window.syncData();
+        }
+
+        function clearAllTransactions() {
+            window.appState.transactions = [];
+            if (window.syncData) window.syncData();
+            showNotification("All transactions cleared.");
+        }
+
+        // ================= TAB 3: SAVINGS TRACKER LOGIC =================
+        function toggleAddSavingsForm() {
+            const form = document.getElementById('addSavingsForm');
+            form.classList.toggle('hidden');
+        }
+
+        function saveSavingsEntry() {
+            const category = document.getElementById('savingsCategory').value.trim();
+            const amount = parseFloat(document.getElementById('savingsAmount').value);
+            const goal = parseFloat(document.getElementById('savingsGoal').value) || 0;
+
+            if (!category || isNaN(amount) || amount <= 0) {
+                showNotification("Please enter a savings title and valid deposit amount.");
+                return;
+            }
+
+            const activeProfile = window.appState.profiles[window.appState.activeUser];
+            const loggerName = activeProfile ? activeProfile.name : window.appState.activeUser;
+            const existingIdx = window.appState.savings.findIndex(s => s.category.toLowerCase() === category.toLowerCase());
+
+            if (existingIdx >= 0) {
+                window.appState.savings[existingIdx].balance += amount;
+                if (goal > 0) window.appState.savings[existingIdx].goal = goal;
+                window.appState.savings[existingIdx].loggedBy = loggerName;
+            } else {
+                window.appState.savings.push({
+                    id: Date.now().toString(),
+                    category: category,
+                    balance: amount,
+                    goal: goal,
+                    loggedBy: loggerName
+                });
+            }
+
+            document.getElementById('savingsCategory').value = '';
+            document.getElementById('savingsAmount').value = '';
+            document.getElementById('savingsGoal').value = '';
+            toggleAddSavingsForm();
+
+            showNotification(`Added $${amount.toFixed(2)} to ${category}`);
+            if (window.syncData) window.syncData();
+        }
+
+        function removeSavingsCategory(id) {
+            window.appState.savings = window.appState.savings.filter(s => s.id !== id);
+            showNotification("Savings category removed.");
+            if (window.syncData) window.syncData();
+        }
+
+        // RENDER FUNCTIONS
+        function renderAll() {
+            renderUserSelectorOptions();
+            renderQuickTapButtons();
+            renderTop3BudgetsPreview();
+            renderTransactionsAndBudgets();
+            renderSavings();
+            updateIncomeCalculations();
+            calculateDebtSnowball();
+        }
+
+        function renderTop3BudgetsPreview() {
+            const container = document.getElementById('topBudgetsContainer');
+            if (!container) return;
+
+            // Calculate spent per category
+            const totals = {};
+            Object.keys(window.appState.categories).forEach(cat => totals[cat] = 0);
+            window.appState.transactions.forEach(t => {
+                if (totals[t.category] !== undefined) totals[t.category] += t.amount;
+            });
+
+            // Sort categories by monthly budget cap (Highest 3)
+            const sortedCategories = Object.keys(window.appState.categories)
+                .map(cat => ({ name: cat, cap: window.appState.categories[cat].cap, spent: totals[cat] || 0 }))
+                .sort((a, b) => b.cap - a.cap)
+                .slice(0, 3);
+
+            if (sortedCategories.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-2">No budget categories configured yet.</p>`;
+                return;
+            }
+
+            let html = '';
+            sortedCategories.forEach(item => {
+                const pct = item.cap > 0 ? Math.min(Math.round((item.spent / item.cap) * 100), 100) : 0;
+                let barColor = 'bg-teal-400';
+                if (pct > 80 && pct <= 100) barColor = 'bg-amber-400';
+                if (pct > 100) barColor = 'bg-rose-500';
+
+                html += `
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-medium text-slate-200">${item.name}</span>
+                            <span class="text-slate-400">$${item.spent.toFixed(2)} / <span class="text-slate-500">$${item.cap}</span></span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                            <div class="${barColor} h-1.5 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderSavings() {
+            const container = document.getElementById('savingsContainer');
+            const totalValEl = document.getElementById('totalSavingsVal');
+            if (!container || !totalValEl) return;
+
+            let totalSavings = 0;
+            if (window.appState.savings.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No savings categories logged yet.</p>`;
+                totalValEl.textContent = "$0.00";
+                return;
+            }
+
+            let html = '';
+            window.appState.savings.forEach(s => {
+                totalSavings += s.balance;
+                const hasGoal = s.goal > 0;
+                const pct = hasGoal ? Math.min(Math.round((s.balance / s.goal) * 100), 100) : 0;
+                const loggedBy = s.loggedBy || 'Spouse 1';
+
+                html += `
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/60 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                                    ${s.category}
+                                    <span class="text-[9px] bg-emerald-500/10 text-emerald-300 px-1.5 py-0.5 rounded-full border border-emerald-500/20">${loggedBy}</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-emerald-400 font-black text-sm">$${s.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                <button onclick="removeSavingsCategory('${s.id}')" class="text-[10px] text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                        ${hasGoal ? `
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px] text-slate-400">
+                                    <span>Goal: $${s.goal.toLocaleString()}</span>
+                                    <span>${pct}% reached</span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                                    <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            totalValEl.textContent = `$${totalSavings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        function renderQuickTapButtons() {
+            const container = document.getElementById('quickTapContainer');
+            if (!container) return;
+
+            const colorMap = {
+                emerald: 'bg-emerald-500/20 text-emerald-400',
+                pink: 'bg-pink-500/20 text-pink-400',
+                amber: 'bg-amber-500/20 text-amber-400',
+                cyan: 'bg-cyan-500/20 text-cyan-400',
+                teal: 'bg-teal-500/20 text-teal-400'
+            };
+
+            let html = '';
+            Object.keys(window.appState.categories).forEach(cat => {
+                const item = window.appState.categories[cat];
+                const badgeStyle = colorMap[item.color] || 'bg-teal-500/20 text-teal-400';
+                const icon = item.icon || 'fa-tag';
+
+                html += `
+                    <button onclick="quickAddCategory('${cat}')" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center gap-1 text-slate-200 transition-all active:scale-95 shadow-sm">
+                        <div class="w-8 h-8 rounded-full ${badgeStyle} flex items-center justify-center">
+                            <i class="fa-solid ${icon} text-sm"></i>
+                        </div>
+                        <span class="text-[11px] font-medium truncate w-full text-center">${cat}</span>
+                    </button>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderTransactionsAndBudgets() {
+            const container = document.getElementById('categoryProgressContainer');
+            const listContainer = document.getElementById('transactionList');
+            if (!container || !listContainer) return;
+
+            const totals = {};
+            Object.keys(window.appState.categories).forEach(cat => totals[cat] = 0);
+            let overallSpent = 0;
+
+            window.appState.transactions.forEach(t => {
+                if (totals[t.category] !== undefined) {
+                    totals[t.category] += t.amount;
+                } else {
+                    totals[t.category] = t.amount;
+                }
+                overallSpent += t.amount;
+            });
+
+            document.getElementById('totalSpentHeader').textContent = `$${overallSpent.toFixed(2)} Spent`;
+
+            let progressHtml = '';
+            Object.keys(window.appState.categories).forEach(cat => {
+                const spent = totals[cat] || 0;
+                const cap = window.appState.categories[cat].cap;
+                const pct = cap > 0 ? Math.min(Math.round((spent / cap) * 100), 100) : 0;
+
+                let barColor = 'bg-teal-400';
+                if (pct > 80 && pct <= 100) barColor = 'bg-amber-400';
+                if (pct > 100) barColor = 'bg-rose-500';
+
+                progressHtml += `
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-medium text-slate-200">${cat}</span>
+                                <button onclick="deleteCategory('${cat}')" class="text-[10px] text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                            <span class="text-slate-400">$${spent.toFixed(2)} / <span class="text-slate-500">$${cap}</span></span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                            <div class="${barColor} h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = progressHtml;
+
+            if (window.appState.transactions.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No transactions recorded yet.</p>`;
+                return;
+            }
+
+            let listHtml = '';
+            window.appState.transactions.forEach(t => {
+                const dateStr = new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                const loggedBy = t.loggedBy || 'Spouse 1';
+                listHtml += `
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl flex items-center justify-between text-xs border border-slate-800">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-teal-400 font-bold text-xs">
+                                ${t.category.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-200 flex items-center gap-1.5">
+                                    ${t.merchant}
+                                    <span class="text-[9px] font-semibold bg-slate-800 text-teal-400 border border-teal-500/20 px-1.5 py-0.5 rounded-full">${loggedBy}</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500">${t.category} • ${dateStr}</div>
+                            </div>
+                        </div>
+                        <span class="font-bold text-slate-100">-$${parseFloat(t.amount).toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = listHtml;
+        }
+
+        // ================= TAB 4: INCOME & TITHE LOGIC =================
+        function updateIncomeCalculations() {
+            const overtimeSlider = document.getElementById('overtimeSlider');
+            if (!overtimeSlider) return;
+
+            const extraHours = parseInt(overtimeSlider.value) || 0;
+            document.getElementById('extraHoursVal').textContent = `${extraHours} hrs`;
+
+            const spouse1Baseline = 3000;
+            const spouse2Rate = 25;
+            const spouse2Baseline = 2000;
+
+            const overtimeRate = spouse2Rate * 1.5;
+            const extraIncome = extraHours * overtimeRate;
+
+            const totalGross = spouse1Baseline + spouse2Baseline + extraIncome;
+            const tithe = totalGross * 0.10;
+            const netCash = totalGross - tithe;
+
+            document.getElementById('spouse2Base').textContent = `$${(spouse2Baseline + extraIncome).toFixed(2)}`;
+            document.getElementById('totalGrossIncome').textContent = `$${totalGross.toFixed(2)}`;
+            document.getElementById('titheAmount').textContent = `$${tithe.toFixed(2)}`;
+            document.getElementById('netIncome').textContent = `$${netCash.toFixed(2)}`;
+
+            const splitCard = document.getElementById('overtimeSplitCard');
+            if (extraIncome > 0) {
+                splitCard.classList.remove('hidden');
+                const halfExcess = extraIncome / 2;
+                document.getElementById('excessTotalVal').textContent = `+$${extraIncome.toFixed(2)}`;
+                document.getElementById('excessDebtVal').textContent = `+$${halfExcess.toFixed(2)}`;
+                document.getElementById('excessSpendVal').textContent = `+$${halfExcess.toFixed(2)}`;
+            } else {
+                splitCard.classList.add('hidden');
+            }
+        }
+
+        // ================= TAB 5: DEBT ACCELERATOR LOGIC =================
+        function calculateDebtSnowball() {
+            const slider = document.getElementById('debtSlider');
+            if (!slider) return;
+
+            const extraPayment = parseFloat(slider.value) || 0;
+            document.getElementById('extraPaymentVal').textContent = `+$${extraPayment} /mo`;
+
+            const debts = [...window.appState.debts].sort((a, b) => a.balance - b.balance);
+
+            if (debts.length === 0) {
+                document.getElementById('monthsToFree').textContent = "0";
+                document.getElementById('dateToFree').textContent = "Debt Free!";
+                document.getElementById('interestSaved').textContent = "$0";
+                renderDebtsList([]);
+                return;
+            }
+
+            let totalMonths = 0;
+            let totalInterestPaidAccelerated = 0;
+            let simDebts = debts.map(d => ({ ...d }));
+
+            while (simDebts.some(d => d.balance > 0) && totalMonths < 360) {
+                totalMonths++;
+                let rolloverExtra = extraPayment;
+
+                for (let i = 0; i < simDebts.length; i++) {
+                    let d = simDebts[i];
+                    if (d.balance <= 0) continue;
+
+                    let monthlyRate = (d.rate / 100) / 12;
+                    let interest = d.balance * monthlyRate;
+                    totalInterestPaidAccelerated += interest;
+
+                    let payment = d.minPayment + rolloverExtra;
+                    rolloverExtra = 0;
+
+                    if (d.balance + interest <= payment) {
+                        rolloverExtra = payment - (d.balance + interest);
+                        d.balance = 0;
+                    } else {
+                        d.balance = (d.balance + interest) - payment;
+                    }
+                }
+            }
+
+            let totalInterestBaseline = 0;
+            let simDebtsBase = debts.map(d => ({ ...d }));
+            let baseMonths = 0;
+
+            while (simDebtsBase.some(d => d.balance > 0) && baseMonths < 360) {
+                baseMonths++;
+                for (let i = 0; i < simDebtsBase.length; i++) {
+                    let d = simDebtsBase[i];
+                    if (d.balance <= 0) continue;
+                    let monthlyRate = (d.rate / 100) / 12;
+                    let interest = d.balance * monthlyRate;
+                    totalInterestBaseline += interest;
+                    let payment = d.minPayment;
+                    if (d.balance + interest <= payment) {
+                        d.balance = 0;
+                    } else {
+                        d.balance = (d.balance + interest) - payment;
+                    }
+                }
+            }
+
+            const interestSaved = Math.max(0, Math.round(totalInterestBaseline - totalInterestPaidAccelerated));
+
+            const futureDate = new Date();
+            futureDate.setMonth(futureDate.getMonth() + totalMonths);
+            const dateStr = futureDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+            document.getElementById('monthsToFree').textContent = totalMonths;
+            document.getElementById('dateToFree').textContent = `Est. ${dateStr}`;
+            document.getElementById('interestSaved').textContent = `$${interestSaved.toLocaleString()}`;
+
+            renderDebtsList(debts);
+        }
+
+        function renderDebtsList(debts) {
+            const container = document.getElementById('debtsContainer');
+            if (!container) return;
+
+            if (debts.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No liabilities added.</p>`;
+                return;
+            }
+
+            let html = '';
+            debts.forEach((d, idx) => {
+                html += `
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between text-xs">
+                        <div class="space-y-0.5">
+                            <div class="font-bold text-white flex items-center gap-1.5">
+                                ${idx === 0 ? '<span class="text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded uppercase">Target #1</span>' : ''}
+                                ${d.name}
+                            </div>
+                            <div class="text-[10px] text-slate-400">Min: $${d.minPayment}/mo • ${d.rate}% APR</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-black text-rose-400 text-sm">$${d.balance.toLocaleString()}</div>
+                            <button onclick="removeDebt('${d.id}')" class="text-[10px] text-slate-500 hover:text-rose-400 transition-all">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleAddDebtForm() {
+            const form = document.getElementById('addDebtForm');
+            form.classList.toggle('hidden');
+        }
+
+        function saveNewDebt() {
+            const name = document.getElementById('debtName').value.trim();
+            const bal = parseFloat(document.getElementById('debtBalance').value);
+            const min = parseFloat(document.getElementById('debtMinPay').value);
+            const rate = parseFloat(document.getElementById('debtRate').value);
+
+            if (!name || !bal || !min || !rate) {
+                showNotification("Please fill in all debt fields.");
+                return;
+            }
+
+            window.appState.debts.push({
+                id: Date.now().toString(),
+                name: name,
+                balance: bal,
+                minPayment: min,
+                rate: rate
+            });
+
+            document.getElementById('debtName').value = '';
+            document.getElementById('debtBalance').value = '';
+            document.getElementById('debtMinPay').value = '';
+            document.getElementById('debtRate').value = '';
+            toggleAddDebtForm();
+
+            showNotification("New debt added to snowball tracker!");
+            if (window.syncData) window.syncData();
+        }
+
+        function removeDebt(id) {
+            window.appState.debts = window.appState.debts.filter(d => d.id !== id);
+            showNotification("Debt liability removed.");
+            if (window.syncData) window.syncData();
+        }
+    </script>
+</body>
+</html>
